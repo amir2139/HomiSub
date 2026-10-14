@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HomiSub — درست‌کن زیرنویس فارسی</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1b1f24;--muted:#667085;--line:#d9dde3;--accent:#2a6df4;--accent-fg:#fff;--ok:#16794c;--bad:#b42318;--mark:#fff3bf}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d2127;--fg:#e8eaed;--muted:#9aa3ad;--line:#343a42;--accent:#5b8cff;--accent-fg:#0b1020;--ok:#4cc38a;--bad:#ff8a80;--mark:#4a4112}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.7 Vazirmatn,Tahoma,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 10px}
+#drop{border:2px dashed var(--line);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:var(--card);margin-bottom:16px}
+#drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card))}
+#drop b{color:var(--accent)}
+#info{color:var(--muted);font-size:13px;margin:8px 0 0;min-height:1.5em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+label{display:flex;align-items:center;gap:8px}
+label.col{flex-direction:column;align-items:stretch;gap:4px}
+input[type=number],input[type=text],select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:100%}
+.row{display:flex;gap:8px;align-items:center}
+button{font:inherit;border:0;border-radius:8px;padding:9px 18px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);padding:4px 10px}
+.cue{border-top:1px solid var(--line);padding:8px 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cue:first-child{border-top:0}
+.cue small{color:var(--muted);display:block;direction:ltr;text-align:right}
+.txt{white-space:pre-wrap;direction:ltr;text-align:right;min-height:1.7em}
+.after .txt{background:color-mix(in srgb,var(--ok) 10%,transparent);border-radius:6px;padding:0 6px}
+.lbl{font-size:12px;color:var(--muted)}
+@media (max-width:560px){.cue{grid-template-columns:1fr}}
+.err{color:var(--bad)}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+  <h1>HomiSub</h1>
+  <p class="sub">درست‌کن زیرنویس فارسی — همه‌چیز داخل مرورگر انجام می‌شود، هیچ فایلی آپلود نمی‌شود.</p>
+
+  <div id="drop" tabindex="0" role="button">
+    فایل زیرنویس را اینجا رها کنید یا <b>انتخاب کنید</b><br>
+    <small>SRT ‏· VTT ‏· ASS/SSA</small>
+    <input id="file" type="file" accept=".srt,.vtt,.ass,.ssa,text/*" hidden>
+  </div>
+  <p id="info"></p>
+
+  <section class="card">
+    <h2>اصلاح متن</h2>
+    <div class="grid">
+      <label><input type="checkbox" id="o-arabic" checked> تبدیل ي و ك عربی به ی و ک</label>
+      <label><input type="checkbox" id="o-punct" checked> درست‌کردن علامت‌های نگارشی (پرش به اول خط)</label>
+      <label><input type="checkbox" id="o-digits"> تبدیل اعداد به فارسی</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>زمان‌بندی</h2>
+    <div class="grid">
+      <label class="col">جابه‌جایی کل زیرنویس (میلی‌ثانیه، منفی = زودتر)
+        <span class="row"><input type="number" id="o-shift" value="0" step="100">
+        <button class="ghost" data-nudge="-500">−۵۰۰</button><button class="ghost" data-nudge="500">+۵۰۰</button></span>
+      </label>
+      <label class="col">fps فیلم/زیرنویس فعلی
+        <input type="text" id="o-fps-from" list="fps" placeholder="مثلاً 23.976" inputmode="decimal">
+      </label>
+      <label class="col">fps مقصد
+        <input type="text" id="o-fps-to" list="fps" placeholder="مثلاً 25" inputmode="decimal">
+      </label>
+      <datalist id="fps"><option value="23.976"><option value="24"><option value="25"><option value="29.97"><option value="30"></datalist>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>خروجی</h2>
+    <div class="row">
+      <label style="flex:1">فرمت
+        <select id="o-format"><option value="srt">SRT</option><option value="vtt">VTT</option><option value="ass">ASS</option></select>
+      </label>
+      <button id="dl" disabled>دانلود (UTF-8 با BOM)</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>پیش‌نمایش چند خط اول</h2>
+    <div class="cue lbl"><div>قبل (مثل پخش‌کننده‌ای که جهت چپ‌به‌راست دارد)</div><div>بعد</div></div>
+    <div id="preview"><span class="lbl">هنوز فایلی انتخاب نشده.</span></div>
+  </section>
+  <footer>HomiSub — MIT</footer>
+</main>
+
+<!-- ===================== CORE (بدون وابستگی به DOM؛ با Node تست می‌شود) ===================== -->
+<script id="core">
+const HomiCore = (function () {
+  'use strict';
+
+  // ---------- کدگشایی ----------
+  const CP1252 = {0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x02DC:0x98,0x2122:0x99,0x0161:0x9A,0x203A:0x9B,0x0153:0x9C,0x017E:0x9E,0x0178:0x9F};
+  const ARABIC = /[؀-ۿ]/;
+  const PERSIAN = /[؀-ۿﭐ-﷿ﹰ-﻿]/;
+
+  // متنی که UTF-8 بوده ولی به‌اشتباه latin1/cp1252 خوانده و دوباره UTF-8 ذخیره شده («Ø§Ù„»)
+  function undoLatin1Mojibake(text) {
+    if (ARABIC.test(text) || !/[ØÙÚÛ]/.test(text)) return null;
+    const bytes = [];
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+      if (c < 256) bytes.push(c);
+      else if (CP1252[c] !== undefined) bytes.push(CP1252[c]);
+      else return null;
+    }
+    try {
+      const fixed = new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes));
+      return ARABIC.test(fixed) ? fixed : null;
+    } catch (e) { return null; }
+  }
+
+  function decodeBytes(input) {
+    const b = input instanceof Uint8Array ? input : new Uint8Array(input);
+    if (b[0] === 0xFF && b[1] === 0xFE) return { text: new TextDecoder('utf-16le').decode(b.subarray(2)), encoding: 'utf-16le', mojibake: false };
+    if (b[0] === 0xFE && b[1] === 0xFF) return { text: new TextDecoder('utf-16be').decode(b.subarray(2)), encoding: 'utf-16be', mojibake: false };
+    let text, encoding;
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(b); // BOM را خودش برمی‌دارد
+      encoding = 'utf-8';
+    } catch (e) {
+      text = new TextDecoder('windows-1256').decode(b);
+      encoding = 'windows-1256';
+    }
+    const fixed = undoLatin1Mojibake(text);
+    if (fixed !== null) return { text: fixed, encoding: encoding + ' (latin1 mojibake fixed)', mojibake: true };
+    return { text, encoding, mojibake: false };
+  }
+
+  // ---------- زمان ----------
+  function toMs(h, m, s, f) {
+    return ((+h || 0) * 3600 + (+m) * 60 + (+s)) * 1000 + (f ? Math.round(parseFloat('0.' + f) * 1000) : 0);
+  }
+  const TIME_LINE = /^\s*(?:(\d+):)?(\d{1,2}):(\d{1,2})(?:[.,](\d+))?\s*-->\s*(?:(\d+):)?(\d{1,2}):(\d{1,2})(?:[.,](\d+))?/;
+  function pad(n, w) { return String(n).padStart(w, '0'); }
+  function fmtTime(ms, kind) {
+    ms = Math.max(0, Math.round(ms));
+    if (kind === 'ass') {
+      const cs = Math.round(ms / 10);
+      return Math.floor(cs / 360000) + ':' + pad(Math.floor(cs / 6000) % 60, 2) + ':' + pad(Math.floor(cs / 100) % 60, 2) + '.' + pad(cs % 100, 2);
+    }
+    const sep = kind === 'srt' ? ',' : '.';
+    return pad(Math.floor(ms / 3600000), 2) + ':' + pad(Math.floor(ms / 60000) % 60, 2) + ':' + pad(Math.floor(ms / 1000) % 60, 2) + sep + pad(ms % 1000, 3);
+  }
+
+  // ---------- خواندن ----------
+  function detectFormat(text) {
+    const t = text.replace(/^﻿/, '').trimStart();
+    if (/^WEBVTT/.test(t)) return 'vtt';
+    if (/^\[Script Info\]/i.test(t) || /^\[Events\]/im.test(t)) return 'ass';
+    return 'srt';
+  }
+
+  function splitAn(text) {
+    let an;
+    text = text.replace(/\{\\an([1-9])\}/g, (_, d) => { an = +d; return ''; });
+    return { text, an };
+  }
+
+  function parseSubRip(text, vtt) {
+    const src = text.replace(/\r\n?/g, '\n').replace(/^﻿/, '').replace(/\n[ \t]+(?=\n)/g, '\n');
+    const cues = [];
+    for (const block of src.split(/\n{2,}/)) {
+      const lines = block.split('\n');
+      const idx = lines.findIndex(l => l.includes('-->'));
+      if (idx < 0) continue;
+      const m = TIME_LINE.exec(lines[idx]);
+      if (!m) continue;
+      let body = lines.slice(idx + 1).join('\n').replace(/\s+$/, '');
+      if (vtt) body = body.replace(/<\d+:\d{2}(?::\d{2})?\.\d+>/g, '').replace(/<\/?(?!(?:i|b|u)\b)[a-z][^>]*>/gi, '');
+      const { text: t, an } = splitAn(body);
+      const cue = { start: toMs(m[1], m[2], m[3], m[4]), end: toMs(m[5], m[6], m[7], m[8]), text: t };
+      if (an) cue.an = an;
+      cues.push(cue);
+    }
+    return { cues, meta: {} };
+  }
+
+  function assToInternal(s) {
+    let an;
+    s = s.replace(/\\[Nn]/g, '\n').replace(/\\h/g, ' ');
+    s = s.replace(/\{[^}]*\}/g, blk => {
+      let out = '';
+      blk.replace(/\\an([1-9])/, (_, d) => { an = +d; return ''; });
+      blk.replace(/\\([ibu])([01])(?![0-9])/g, (_, k, v) => { out += v === '1' ? '<' + k + '>' : '</' + k + '>'; return ''; });
+      return out;
+    });
+    return { text: s, an };
+  }
+
+  const DEFAULT_FIELDS = ['Layer', 'Start', 'End', 'Style', 'Name', 'MarginL', 'MarginR', 'MarginV', 'Effect', 'Text'];
+  const DEFAULT_ASS_HEADER = [
+    '[Script Info]', 'ScriptType: v4.00+', 'PlayResX: 384', 'PlayResY: 288', 'WrapStyle: 0', 'ScaledBorderAndShadow: yes', '',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    'Style: Default,Tahoma,20,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,20,1', '',
+    '[Events]', 'Format: ' + DEFAULT_FIELDS.join(', ')
+  ].join('\n');
+
+  function parseASS(text) {
+    const lines = text.replace(/\r\n?/g, '\n').replace(/^﻿/, '').split('\n');
+    let fields = null, inEvents = false, firstDialogue = -1;
+    const cues = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*\[.+\]\s*$/.test(line)) { inEvents = /^\s*\[events\]/i.test(line); continue; }
+      if (!inEvents) continue;
+      if (/^\s*Format\s*:/i.test(line)) { fields = line.replace(/^\s*Format\s*:/i, '').split(',').map(s => s.trim()); continue; }
+      const dm = /^\s*Dialogue\s*:\s?(.*)$/i.exec(line);
+      if (!dm) continue;
+      if (!fields) fields = DEFAULT_FIELDS.slice();
+      if (firstDialogue < 0) firstDialogue = i;
+      const n = fields.length, parts = [];
+      let rest = dm[1];
+      for (let k = 0; k < n - 1; k++) {
+        const c = rest.indexOf(',');
+        if (c < 0) { parts.push(rest); rest = ''; } else { parts.push(rest.slice(0, c)); rest = rest.slice(c + 1); }
+      }
+      parts.push(rest);
+      const f = {}, vals = {};
+      fields.forEach((name, k) => { vals[name.toLowerCase()] = parts[k]; if (!/^(start|end|text)$/i.test(name)) f[name.toLowerCase()] = parts[k]; });
+      const st = /(\d+):(\d{1,2}):(\d{1,2})(?:[.,](\d+))?/.exec(vals.start || ''), en = /(\d+):(\d{1,2}):(\d{1,2})(?:[.,](\d+))?/.exec(vals.end || '');
+      if (!st || !en) continue;
+      const { text: t, an } = assToInternal(vals.text || '');
+      const cue = { start: toMs(st[1], st[2], st[3], st[4]), end: toMs(en[1], en[2], en[3], en[4]), text: t, f };
+      if (an) cue.an = an;
+      cues.push(cue);
+    }
+    let header = null;
+    if (firstDialogue >= 0) header = lines.slice(0, firstDialogue).join('\n').replace(/\s+$/, '');
+    if (header && !/^\s*Format\s*:/im.test(header.split(/\[events\]/i).pop() || '')) header += '\nFormat: ' + fields.join(', ');
+    return { cues, meta: { assHeader: header || null, assFields: fields || null } };
+  }
+
+  function parse(text, format) {
+    format = format || detectFormat(text);
+    const r = format === 'ass' ? parseASS(text) : parseSubRip(text, format === 'vtt');
+    return { format, cues: r.cues, meta: r.meta };
+  }
+
+  // ---------- اصلاح متن ----------
+  function mapOutsideTags(line, fn) {
+    return line.split(/(\{[^}]*\}|<[^>]*>)/).map((p, i) => (i % 2 ? p : fn(p))).join('');
+  }
+  const BIDI = /[‎‏‪-‮⁦-⁩]/g;
+  const LEAD_TAGS = /^((?:\s*(?:\{[^}]*\}|<[^>]*>))*\s*)([\s\S]*)$/;
+  const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+
+  function fixPunctLine(line) {
+    line = line.replace(BIDI, '');
+    line = mapOutsideTags(line, s => s
+      .replace(/([؀-ۿ])\s*\?/g, '$1؟')
+      .replace(/([؀-ۿ])\s*,/g, '$1،')
+      .replace(/([؀-ۿ])\s*;/g, '$1؛')
+      .replace(/\s+([،؛؟!])/g, '$1')
+      .replace(/([،؛؟])(?=[؀-ۿ])/g, '$1 '));
+    const m = LEAD_TAGS.exec(line);
+    let lead = m[1], body = m[2];
+    if (!/^(\.{3,}|…)/.test(body)) {
+      const p = /^([.،؛؟!]+)\s*(?=\S)/.exec(body);
+      if (p) {
+        const rest = body.slice(p[0].length);
+        if (PERSIAN.test(rest)) body = rest.replace(/((?:\{[^}]*\}|<[^>]*>)*)$/, p[1] + '$1');
+      }
+    }
+    return lead + '‫' + body + '‬';
+  }
+
+  function fixText(text, o) {
+    return text.split('\n').map(line => {
+      if (o.arabic) {
+        line = mapOutsideTags(line, s => s
+          .replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/ـ/g, '')
+          .replace(/[٠-٩]/g, d => String.fromCharCode(d.charCodeAt(0) - 0x0660 + 0x06F0)));
+      }
+      if (o.digits) line = mapOutsideTags(line, s => s.replace(/[0-9]/g, d => FA_DIGITS[+d]));
+      if (o.punct && PERSIAN.test(line)) line = fixPunctLine(line);
+      return line;
+    }).join('\n');
+  }
+
+  function fixCues(cues, o) {
+    return cues.map(c => Object.assign({}, c, { text: fixText(c.text, o) }));
+  }
+
+  // ---------- زمان‌بندی ----------
+  function shiftCues(cues, ms) {
+    if (!ms) return cues.slice();
+    const out = [];
+    for (const c of cues) {
+      const end = c.end + ms;
+      if (end <= 0) continue;
+      out.push(Object.assign({}, c, { start: Math.max(0, c.start + ms), end }));
+    }
+    return out;
+  }
+  // فیلم با fps مقصد پخش می‌شود ولی زمان‌ها برای fps مبدأ ساخته شده‌اند: t' = t * from / to
+  function scaleFps(cues, from, to) {
+    if (!(from > 0) || !(to > 0) || from === to) return cues.slice();
+    const k = from / to;
+    return cues.map(c => Object.assign({}, c, { start: Math.round(c.start * k), end: Math.round(c.end * k) }));
+  }
+
+  // ---------- نوشتن ----------
+  function toSRT(cues) {
+    return cues.map((c, i) => {
+      const t = (c.an ? '{\\an' + c.an + '}' : '') + c.text;
+      return (i + 1) + '\r\n' + fmtTime(c.start, 'srt') + ' --> ' + fmtTime(c.end, 'srt') + '\r\n' + t.replace(/\n{2,}/g, '\n').replace(/\n/g, '\r\n');
+    }).join('\r\n\r\n') + '\r\n';
+  }
+  function toVTT(cues) {
+    return 'WEBVTT\r\n\r\n' + cues.map(c => {
+      const t = c.text.replace(/<\/?(?!(?:i|b|u)\b)[a-z][^>]*>/gi, '').replace(/\n{2,}/g, '\n').replace(/\n/g, '\r\n');
+      const set = c.an >= 7 ? ' line:10%' : '';
+      return fmtTime(c.start, 'vtt') + ' --> ' + fmtTime(c.end, 'vtt') + set + '\r\n' + t;
+    }).join('\r\n\r\n') + '\r\n';
+  }
+  function internalToAss(s) {
+    return s.replace(/<(\/?)([ibu])>/gi, (_, sl, k) => '{\\' + k.toLowerCase() + (sl ? '0' : '1') + '}')
+      .replace(/<[^>]*>/g, '').replace(/\n/g, '\\N');
+  }
+  const ASS_DEFAULTS = { layer: '0', marked: 'Marked=0', style: 'Default', name: '', marginl: '0', marginr: '0', marginv: '0', effect: '' };
+  function toASS(cues, meta) {
+    const header = (meta && meta.assHeader) || DEFAULT_ASS_HEADER;
+    const fields = (meta && meta.assFields) || DEFAULT_FIELDS;
+    const lines = cues.map(c => {
+      const vals = fields.map(name => {
+        const k = name.toLowerCase();
+        if (k === 'start') return fmtTime(c.start, 'ass');
+        if (k === 'end') return fmtTime(c.end, 'ass');
+        if (k === 'text') return (c.an ? '{\\an' + c.an + '}' : '') + internalToAss(c.text);
+        const v = c.f && c.f[k] !== undefined ? c.f[k] : ASS_DEFAULTS[k];
+        return v === undefined ? '' : v;
+      });
+      return 'Dialogue: ' + vals.join(',');
+    });
+    return header + '\r\n' + lines.join('\r\n') + '\r\n';
+  }
+
+  function serialize(parsed, target) {
+    const cues = parsed.cues;
+    if (target === 'vtt') return toVTT(cues);
+    if (target === 'ass') return toASS(cues, parsed.meta);
+    return toSRT(cues);
+  }
+
+  // خط لوله‌ی کامل: parse → اصلاح → fps → جابه‌جایی → خروجی
+  function process(parsed, opts) {
+    let cues = fixCues(parsed.cues, opts);
+    cues = scaleFps(cues, opts.fpsFrom, opts.fpsTo);
+    cues = shiftCues(cues, opts.shiftMs || 0);
+    return { format: parsed.format, cues, meta: parsed.meta };
+  }
+
+  function bom(text) { return '﻿' + text; }
+
+  return { decodeBytes, undoLatin1Mojibake, detectFormat, parse, fixText, fixCues, shiftCues, scaleFps, serialize, process, fmtTime, bom };
+})();
+if (typeof module !== 'undefined') module.exports = HomiCore;
+</script>
+<!-- ===================== پایان CORE ===================== -->
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  let original = null; // {name, parsed, encoding}
+
+  function opts() {
+    const num = id => parseFloat(String($(id).value).replace(',', '.'));
+    return {
+      arabic: $('o-arabic').checked, punct: $('o-punct').checked, digits: $('o-digits').checked,
+      shiftMs: parseInt($('o-shift').value, 10) || 0,
+      fpsFrom: num('o-fps-from'), fpsTo: num('o-fps-to')
+    };
+  }
+
+  function outName() {
+    const base = original.name.replace(/\.[^.]+$/, '');
+    return base + '.' + $('o-format').value;
+  }
+
+  function render() {
+    const box = $('preview');
+    box.textContent = '';
+    if (!original) { box.innerHTML = '<span class="lbl">هنوز فایلی انتخاب نشده.</span>'; return; }
+    const n = Math.min(8, original.parsed.cues.length);
+    if (!n) { box.textContent = 'هیچ خط زیرنویسی پیدا نشد.'; $('dl').disabled = true; return; }
+    const mapped = HomiCore.fixCues(original.parsed.cues.slice(0, n), opts());
+    for (let i = 0; i < n; i++) {
+      const a = original.parsed.cues[i], m = mapped[i];
+      const row = document.createElement('div'); row.className = 'cue';
+      const l = document.createElement('div'), r = document.createElement('div'); r.className = 'after';
+      const t1 = document.createElement('small'), t2 = document.createElement('small');
+      t1.textContent = HomiCore.fmtTime(a.start, 'vtt') + ' → ' + HomiCore.fmtTime(a.end, 'vtt');
+      const shifted = HomiCore.shiftCues(HomiCore.scaleFps([m], opts().fpsFrom, opts().fpsTo), opts().shiftMs)[0];
+      t2.textContent = shifted ? HomiCore.fmtTime(shifted.start, 'vtt') + ' → ' + HomiCore.fmtTime(shifted.end, 'vtt') : '(حذف می‌شود)';
+      const x1 = document.createElement('div'), x2 = document.createElement('div');
+      x1.className = x2.className = 'txt';
+      x1.textContent = a.text; x2.textContent = m.text;
+      l.append(t1, x1); r.append(t2, x2); row.append(l, r); box.append(row);
+    }
+    $('dl').disabled = false;
+  }
+
+  async function load(file) {
+    try {
+      const dec = HomiCore.decodeBytes(new Uint8Array(await file.arrayBuffer()));
+      const parsed = HomiCore.parse(dec.text);
+      original = { name: file.name, parsed, encoding: dec.encoding };
+      $('o-format').value = parsed.format;
+      $('info').className = '';
+      $('info').textContent = file.name + ' — فرمت: ' + parsed.format.toUpperCase() + ' — encoding: ' + dec.encoding + ' — ' + parsed.cues.length + ' خط';
+    } catch (e) {
+      original = null;
+      $('info').className = 'err';
+      $('info').textContent = 'خواندن فایل ممکن نشد: ' + e.message;
+    }
+    render();
+  }
+
+  const drop = $('drop'), fileIn = $('file');
+  drop.addEventListener('click', () => fileIn.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileIn.click(); } });
+  fileIn.addEventListener('change', () => { if (fileIn.files[0]) load(fileIn.files[0]); });
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) load(f); });
+  ['dragover', 'drop'].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
+
+  document.querySelectorAll('input,select').forEach(el => { if (el.id !== 'file') el.addEventListener('input', render); });
+  document.querySelectorAll('[data-nudge]').forEach(b => b.addEventListener('click', () => {
+    $('o-shift').value = (parseInt($('o-shift').value, 10) || 0) + parseInt(b.dataset.nudge, 10);
+    render();
+  }));
+
+  $('dl').addEventListener('click', () => {
+    if (!original) return;
+    const text = HomiCore.serialize(HomiCore.process(original.parsed, opts()), $('o-format').value);
+    const blob = new Blob([HomiCore.bom(text)], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = outName();
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+})();
+</script>
+</body>
+</html>
